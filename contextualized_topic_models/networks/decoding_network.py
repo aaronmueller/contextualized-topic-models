@@ -13,7 +13,7 @@ class DecoderNetwork(nn.Module):
 
     def __init__(self, input_size, bert_size, infnet, n_components=10, model_type='prodLDA',
                  hidden_sizes=(100,100), activation='softplus', dropout=0.2,
-                 learn_priors=True):
+                 learn_priors=True, nb_labels=None):
         """
         Initialize InferenceNetwork.
 
@@ -44,11 +44,11 @@ class DecoderNetwork(nn.Module):
         self.activation = activation
         self.dropout = dropout
         self.learn_priors = learn_priors
-        self.topic_word_matrix = None
+        self.nb_labels = nb_labels
 
         if infnet == "contextual":
             self.inf_net = ContextualInferenceNetwork(
-                input_size, bert_size, n_components, hidden_sizes, activation)
+                input_size, bert_size, n_components, hidden_sizes, activation, nb_labels=self.nb_labels)
         elif infnet == "combined":
             self.inf_net = CombinedInferenceNetwork(
                 input_size, bert_size, n_components, hidden_sizes, activation)
@@ -61,8 +61,8 @@ class DecoderNetwork(nn.Module):
         topic_prior_mean = 0.0
         self.prior_mean = torch.tensor(
             [topic_prior_mean] * n_components)
-        if torch.cuda.is_available():
-            self.prior_mean = self.prior_mean.cuda()
+        #if torch.cuda.is_available():
+        #    self.prior_mean = self.prior_mean.cuda()
         if self.learn_priors:
             self.prior_mean = nn.Parameter(self.prior_mean)
 
@@ -71,14 +71,14 @@ class DecoderNetwork(nn.Module):
         topic_prior_variance = 1. - (1. / self.n_components)
         self.prior_variance = torch.tensor(
             [topic_prior_variance] * n_components)
-        if torch.cuda.is_available():
-            self.prior_variance = self.prior_variance.cuda()
+        #if torch.cuda.is_available():
+        #    self.prior_variance = self.prior_variance.cuda()
         if self.learn_priors:
             self.prior_variance = nn.Parameter(self.prior_variance)
 
         self.beta = torch.Tensor(n_components, input_size)
-        if torch.cuda.is_available():
-            self.beta = self.beta.cuda()
+        #if torch.cuda.is_available():
+        #    self.beta = self.beta.cuda()
         self.beta = nn.Parameter(self.beta)
         nn.init.xavier_uniform_(self.beta)
 
@@ -97,7 +97,7 @@ class DecoderNetwork(nn.Module):
     def forward(self, x, x_bert):
         """Forward pass."""
         # batch_size x n_components
-        posterior_mu, posterior_log_sigma = self.inf_net(x, x_bert)
+        posterior_mu, posterior_log_sigma, doc_logits = self.inf_net(x, x_bert)
         posterior_sigma = torch.exp(posterior_log_sigma)
 
         # generate samples from theta
@@ -105,27 +105,30 @@ class DecoderNetwork(nn.Module):
             self.reparameterize(posterior_mu, posterior_log_sigma), dim=1)
         theta = self.drop_theta(theta)
 
+        if doc_logits is not None:
+            doc_log_probs = F.log_softmax(doc_logits, dim=-1)
+        else:
+            doc_log_probs = None
+
         # prodLDA vs LDA
         if self.model_type == 'prodLDA':
             # in: batch_size x input_size x n_components
             word_dist = F.softmax(
                 self.beta_batchnorm(torch.matmul(theta, self.beta)), dim=1)
             # word_dist: batch_size x input_size
-            self.topic_word_matrix = self.beta
         elif self.model_type == 'LDA':
             # simplex constrain on Beta
             beta = F.softmax(self.beta_batchnorm(self.beta), dim=1)
-            self.topic_word_matrix = beta
             word_dist = torch.matmul(theta, beta)
             # word_dist: batch_size x input_size
 
         return self.prior_mean, self.prior_variance, \
-            posterior_mu, posterior_sigma, posterior_log_sigma, word_dist
+            posterior_mu, posterior_sigma, posterior_log_sigma, word_dist, doc_log_probs
 
     def get_theta(self, x, x_bert):
         with torch.no_grad():
             # batch_size x n_components
-            posterior_mu, posterior_log_sigma = self.inf_net(x, x_bert)
+            posterior_mu, posterior_log_sigma, doc_logits = self.inf_net(x, x_bert)
             posterior_sigma = torch.exp(posterior_log_sigma)
 
             # generate samples from theta

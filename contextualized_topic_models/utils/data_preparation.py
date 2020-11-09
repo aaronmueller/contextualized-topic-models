@@ -1,76 +1,87 @@
+import os
+import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import scipy.sparse
 
 
 def get_bag_of_words(data, min_length):
-    """
-    Creates the bag of words
-    """
+
     vect = [np.bincount(x[x != np.array(None)].astype('int'), minlength=min_length)
             for x in data if np.sum(x[x != np.array(None)]) != 0]
-
-    vect = scipy.sparse.csr_matrix(vect)
-    return vect
+    return np.array(vect)
 
 
-def bert_embeddings_from_file(text_file, sbert_model_to_load, batch_size=200):
-    """
-    Creates SBERT Embeddings from an input file
-    """
+def bert_embeddings_from_file(text_file, sbert_model_to_load):
     model = SentenceTransformer(sbert_model_to_load)
-    with open(text_file, encoding="utf-8") as filino:
+
+    with open(text_file, encoding="latin") as filino:
         train_text = list(map(lambda x: x, filino.readlines()))
 
-    return np.array(model.encode(train_text, show_progress_bar=True, batch_size=batch_size))
+    return np.array(model.encode(train_text))
 
 
-def bert_embeddings_from_list(texts, sbert_model_to_load, batch_size=200):
-    """
-    Creates SBERT Embeddings from a list
-    """
+def bert_embeddings_from_list(texts, sbert_model_to_load):
     model = SentenceTransformer(sbert_model_to_load)
-    return np.array(model.encode(texts, show_progress_bar=True, batch_size=batch_size))
+    return np.array(model.encode(texts))
+
+def labels_from_file(json_file):
+    assert os.path.isfile(json_file)
+
+    topic_to_int = {}
+    labels = []
+    num_labels = 0
+    with open(json_file, 'r') as json_lines:
+        for json_str in json_lines:
+            json_obj = json.loads(json_str)
+            this_label = json_obj['label']
+            if this_label not in topic_to_int.keys():
+                topic_to_int[this_label] = num_labels
+                num_labels += 1
+            labels.append(topic_to_int[this_label])
+
+    return labels, num_labels
 
 
 class TextHandler:
-    """
-    Class used to handle the text preparation and the BagOfWord
-    """
-    def __init__(self, file_name=None, sentences=None):
+
+    def __init__(self, file_name):
         self.file_name = file_name
-        self.sentences = sentences
         self.vocab_dict = {}
         self.vocab = []
         self.index_dd = None
         self.idx2token = None
         self.bow = None
 
+    def load_text_file(self):
+        """
+        Loads a text file
+        :param text_file:
+        :return:
+        """
+        with open(self.file_name, "r") as filino:
+            data = filino.readlines()
+
+        return data
+
     def prepare(self):
-        indptr = [0]
-        indices = []
-        data = []
-        vocabulary = {}
+        data = self.load_text_file()
 
-        if self.sentences == None and self.file_name == None:
-            raise Exception("Sentences and file_names cannot both be none")
+        concatenate_text = ""
+        for line in data:
+            line = line.strip()
+            concatenate_text += line + " "
+        concatenate_text = concatenate_text.strip()
 
-        if self.sentences != None:
-            docs = self.sentences
-        elif self.file_name != None:
-            with open(self.file_name, encoding="utf-8") as filino:
-                docs = filino.readlines()
-        else:
-            raise Exception("One parameter between sentences and file_name should be selected")
+        self.vocab = list(set(concatenate_text.split()))
 
-        for d in docs:
-            for term in d.split():
-                index = vocabulary.setdefault(term, len(vocabulary))
-                indices.append(index)
-                data.append(1)
-            indptr.append(len(indices))
+        for index, vocab in list(zip(range(0, len(self.vocab)), self.vocab)):
+            self.vocab_dict[vocab] = index
 
-        self.vocab_dict = vocabulary
-        self.vocab = list(vocabulary.keys())
+        self.index_dd = np.array(list(map(lambda y: np.array(list(map(lambda x:
+                                                                      self.vocab_dict[x], y.split()))), data)))
         self.idx2token = {v: k for (k, v) in self.vocab_dict.items()}
-        self.bow = scipy.sparse.csr_matrix((data, indices, indptr), dtype=int)
+        self.bow = get_bag_of_words(self.index_dd, len(self.vocab))
+
+
+
+

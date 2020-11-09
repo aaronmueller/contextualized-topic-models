@@ -10,7 +10,7 @@ class ContextualInferenceNetwork(nn.Module):
     """Inference Network."""
 
     def __init__(self, input_size, bert_size, output_size, hidden_sizes,
-                 activation='softplus', dropout=0.2):
+                 activation='softplus', dropout=0.2, nb_labels=None):
         """
         Initialize InferenceNetwork.
 
@@ -34,6 +34,7 @@ class ContextualInferenceNetwork(nn.Module):
         self.output_size = output_size
         self.hidden_sizes = hidden_sizes
         self.dropout = dropout
+        self.nb_labels = nb_labels
 
         if activation == 'softplus':
             self.activation = nn.Softplus()
@@ -46,6 +47,9 @@ class ContextualInferenceNetwork(nn.Module):
         self.hiddens = nn.Sequential(OrderedDict([
             ('l_{}'.format(i), nn.Sequential(nn.Linear(h_in, h_out), self.activation))
             for i, (h_in, h_out) in enumerate(zip(hidden_sizes[:-1], hidden_sizes[1:]))]))
+
+        if self.nb_labels is not None:
+            self.classifier = nn.Linear(self.hidden_sizes[-1], self.nb_labels)
 
         self.f_mu = nn.Linear(hidden_sizes[-1], output_size)
         self.f_mu_batchnorm = nn.BatchNorm1d(output_size, affine=False)
@@ -62,10 +66,14 @@ class ContextualInferenceNetwork(nn.Module):
         x = self.activation(x_bert)
         x = self.hiddens(x)
         x = self.dropout_enc(x)
+        #if self.nb_labels is not None:
+        #    logits = self.classifier(x)
+        #else:
+        logits = None
         mu = self.f_mu_batchnorm(self.f_mu(x))
         log_sigma = self.f_sigma_batchnorm(self.f_sigma(x))
-
-        return mu, log_sigma
+        
+        return mu, log_sigma, logits
 
 
 
