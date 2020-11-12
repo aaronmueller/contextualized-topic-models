@@ -5,7 +5,7 @@ from contextualized_topic_models.models.ctm import CTM
 from contextualized_topic_models.datasets.dataset import CTMDataset
 from contextualized_topic_models.evaluation.measures import Matches, KLDivergence, CentroidDistance
 from contextualized_topic_models.utils.data_preparation import TextHandler, bert_embeddings_from_file
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 from collections import Counter
 
 def show_topics(topic_list):
@@ -33,14 +33,18 @@ with open("temp/topics_en.txt", 'w') as test_out:
     topics = np.squeeze(np.argmax(thetas_en, axis=1).T)
     for topic in topics:
         test_out.write('\n' + str(topic))
-        
+
+# randomly shuffled en baseline
+# np.random.seed(3)
+# np.random.shuffle(thetas_en)
+
 # plot topic histogram
 labels, values = zip(*Counter(np.squeeze(np.argmax(thetas_en, axis=1).T)).items())
 indexes = np.arange(len(labels))
 width = 1
-plt.bar(indexes, values, width)
-plt.xticks(indexes + width * 0.5, labels)
-plt.savefig('figures/hist_en.png') 
+# plt.bar(indexes, values, width)
+# plt.xticks(indexes + width * 0.5, labels)
+# plt.savefig('figures/hist_en.png') 
 # print(thetas_en)
 
 # uniform baseline
@@ -55,17 +59,20 @@ for lang in ('fr', 'de', 'nl', 'pt'):
     testing_bert_fr = bert_embeddings_from_file(f'contextualized_topic_models/data/wiki/wiki_test_{lang}_unprep_sub.txt', sys.argv[3])
     testing_dataset_fr = CTMDataset(handler_fr.bow, testing_bert_fr, handler_fr.idx2token)
     thetas_fr = ctm.get_thetas(testing_dataset_fr, n_samples=100)
+    # randomly shuffled fr baseline
+    #np.random.seed(3)
+    #np.random.shuffle(thetas_fr)
     with open(f"temp/topics_{lang}.txt", 'w') as test_out:
         topics = np.squeeze(np.argmax(thetas_fr, axis=1).T)
         for topic in topics:
             test_out.write('\n' + str(topic))
     # plot topic histogram
-    plt.cla(); plt.clf()
+    # plt.cla(); plt.clf()
     labels, values = zip(*Counter(np.squeeze(np.argmax(thetas_fr, axis=1).T)).items())
     indexes = np.arange(len(labels))
-    plt.bar(indexes, values, width)
-    plt.xticks(indexes + width * 0.5, labels)
-    plt.savefig(f'figures/hist_{lang}.png') 
+    # plt.bar(indexes, values, width)
+    # plt.xticks(indexes + width * 0.5, labels)
+    # plt.savefig(f'figures/hist_{lang}.png') 
     # calculate multilingual metrics
     match = Matches(thetas_en, thetas_fr)
     kl = KLDivergence(thetas_en, thetas_fr)
