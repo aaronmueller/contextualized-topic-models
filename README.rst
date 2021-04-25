@@ -1,49 +1,18 @@
 ===========================
-Contextualized Topic Models
+Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling
 ===========================
 
-.. image:: https://img.shields.io/pypi/v/contextualized_topic_models.svg
-        :target: https://pypi.python.org/pypi/contextualized_topic_models
+This respository contains code for replicating the experiments of our NAACL 2021 paper, [Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling](https://arxiv.org/abs/2104.05064). Specifically, this repository contains code for preprocessing input data, the article IDs for the Wikipedia dataset we use in the paper, and the code for TCCTM modeling. This repository is very similar to the original contextualized topic modeling repository, but with the addition of our specific TCCTM model and evaluation code.
 
-.. image:: https://travis-ci.com/MilaNLProc/contextualized-topic-models.svg
-        :target: https://travis-ci.com/MilaNLProc/contextualized-topic-models
+For continued pre-training, use the [huggingface transformers](https://github.com/huggingface/transformers) repository. We have included our continued pre-training script in the `cpt` folder.
 
-.. image:: https://readthedocs.org/projects/contextualized-topic-models/badge/?version=latest
-        :target: https://contextualized-topic-models.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
-
-.. image:: https://img.shields.io/github/contributors/MilaNLProc/contextualized-topic-models
-        :target: https://github.com/MilaNLProc/contextualized-topic-modelsgraphs/contributors/
-        :alt: Contributors
-
-.. image:: https://img.shields.io/badge/License-MIT-blue.svg
-        :target: https://lbesson.mit-license.org/
-        :alt: License
-
-.. image:: https://pepy.tech/badge/contextualized-topic-models
-        :target: https://pepy.tech/project/contextualized-topic-models
-        :alt: Downloads
-
-.. image:: https://colab.research.google.com/assets/colab-badge.svg
-    :target: https://colab.research.google.com/drive/1V0tkpJL1yhiHZUJ_vwQRu6I7_svjw1wb?usp=sharing
-    :alt: Open In Colab
-
+For fine-tuning sentence embeddings, use the [sentence-transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
 Contextualized Topic Models (CTM) are a family of topic models that use pre-trained representations of language (e.g., BERT) to
-support topic modeling. See the papers for details:
+support topic modeling. See the original papers for details:
 
 * `Cross-lingual Contextualized Topic Models with Zero-shot Learning` https://arxiv.org/pdf/2004.07737v1.pdf
 * `Pre-training is a Hot Topic: Contextualized Document Embeddings Improve Topic Coherence` https://arxiv.org/pdf/2004.03974.pdf
-
-
-.. image:: https://raw.githubusercontent.com/MilaNLProc/contextualized-topic-models/master/img/logo.png
-   :align: center
-   :width: 200px
-
-README
-------
-
-Make **sure** you read the doc a bit. The cross-lingual topic modeling requires to use a "contextual" model and it is trained only on **ONE** language; with the power of multilingual BERT it can then be used to predict the topics of documents in unseen languages. For more details you can read the two papers mentioned above.
 
 
 Jump start Tutorial

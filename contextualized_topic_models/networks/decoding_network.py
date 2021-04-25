@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from contextualized_topic_models.networks.inference_network import CombinedInferenceNetwork, ContextualInferenceNetwork
+from contextualized_topic_models.networks.inference_network import CombinedInferenceNetwork, ContextualInferenceNetwork, ProdLDA
 
 
 class DecoderNetwork(nn.Module):
@@ -51,6 +51,9 @@ class DecoderNetwork(nn.Module):
                 input_size, bert_size, n_components, hidden_sizes, activation, nb_labels=self.nb_labels)
         elif infnet == "combined":
             self.inf_net = CombinedInferenceNetwork(
+                input_size, bert_size, n_components, hidden_sizes, activation)
+        elif infnet == "prodlda_baseline":
+            self.inf_net = ProdLDA(
                 input_size, bert_size, n_components, hidden_sizes, activation)
         else:
             raise Exception('Missing infnet parameter, options are contextual and combined')

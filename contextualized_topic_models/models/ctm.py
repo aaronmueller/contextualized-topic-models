@@ -22,7 +22,8 @@ class CTM(object):
     def __init__(self, input_size, bert_input_size, inference_type, n_components=10, model_type='prodLDA',
                  hidden_sizes=(100, 100), activation='softplus', dropout=0.2,
                  learn_priors=True, batch_size=64, lr=2e-3, momentum=0.99,
-                 solver='adam', num_epochs=100, reduce_on_plateau=False, nb_labels=None, num_data_loader_workers=mp.cpu_count()):
+                 solver='adam', num_epochs=100, reduce_on_plateau=False, nb_labels=None, nll_lambda=1.0,
+                 num_data_loader_workers=mp.cpu_count()):
         """
         Initialize CTM model.
 
@@ -81,6 +82,7 @@ class CTM(object):
         self.num_epochs = num_epochs
         self.reduce_on_plateau = reduce_on_plateau
         self.nb_labels = nb_labels
+        self.nll_lambda = nll_lambda
         self.num_data_loader_workers = num_data_loader_workers
 
         # init inference avitm network
@@ -143,7 +145,7 @@ class CTM(object):
 
         if doc_log_probs is not None:
             NLL = F.nll_loss(doc_log_probs.view(-1, self.nb_labels), torch.squeeze(labels))
-            loss = KL + RL + NLL
+            loss = KL + RL + (self.nll_lambda * NLL)
             return loss.sum()
 
         loss = KL + RL

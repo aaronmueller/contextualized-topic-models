@@ -3,7 +3,6 @@ from gensim.models.coherencemodel import CoherenceModel
 from gensim.models import KeyedVectors
 import gensim.downloader as api
 from scipy.spatial.distance import cosine
-import abc
 
 from contextualized_topic_models.evaluation.rbo import rbo
 import numpy as np
@@ -11,6 +10,7 @@ import itertools
 
 
 class Measure:
+
     def __init__(self):
         pass
 
@@ -38,29 +38,20 @@ class TopicDiversity(Measure):
             return td
 
 
-class Coherence(abc.ABC):
-    """
-    :param topics: a list of lists of the top-k words
-    :param texts: (list of lists of strings) represents the corpus on which the empirical frequencies of words are computed
-    """
+class CoherenceNPMI(Measure):
     def __init__(self, topics, texts):
+        super().__init__()
         self.topics = topics
         self.texts = texts
         self.dictionary = Dictionary(self.texts)
 
-    @abc.abstractmethod
-    def score(self):
-        pass
-
-
-class CoherenceNPMI(Coherence):
-    def __init__(self, topics, texts):
-        super().__init__(topics, texts)
-
     def score(self, topk=10):
         """
+        :param topics: a list of lists of the top-k words
+        :param texts: (list of lists of strings) represents the corpus on which the empirical frequencies of words are
+        computed
         :param topk: how many most likely words to consider in the evaluation
-        :return: NPMI coherence
+        :return:
         """
         if topk > len(self.topics[0]):
             raise Exception('Words in topics are less than topk')
@@ -70,65 +61,14 @@ class CoherenceNPMI(Coherence):
             return npmi.get_coherence()
 
 
-class CoherenceUMASS(Coherence):
-    def __init__(self, topics, texts):
-        super().__init__(topics, texts)
-
-    def score(self, topk=10):
-        """
-        :param topk: how many most likely words to consider in the evaluation
-        :return: UMass coherence
-        """
-        if topk > len(self.topics[0]):
-            raise Exception('Words in topics are less than topk')
-        else:
-            umass = CoherenceModel(topics=self.topics, texts=self.texts, dictionary=self.dictionary,
-                                   coherence='u_mass', topn=topk)
-            return umass.get_coherence()
-
-
-class CoherenceUCI(Coherence):
-    def __init__(self, topics, texts):
-        super().__init__(topics, texts)
-
-    def score(self, topk=10):
-        """
-        :param topk: how many most likely words to consider in the evaluation
-        :return: UCI coherence
-        """
-        if topk > len(self.topics[0]):
-            raise Exception('Words in topics are less than topk')
-        else:
-            uci = CoherenceModel(topics=self.topics, texts=self.texts, dictionary=self.dictionary,
-                                 coherence='c_uci', topn=topk)
-            return uci.get_coherence()
-
-
-class CoherenceCV(Coherence):
-    def __init__(self, topics, texts):
-        super().__init__(topics, texts)
-
-    def score(self, topk=10):
-        """
-        :param topk: how many most likely words to consider in the evaluation
-        :return: C_V coherence
-        """
-        if topk > len(self.topics[0]):
-            raise Exception('Words in topics are less than topk')
-        else:
-            cv = CoherenceModel(topics=self.topics, texts=self.texts, dictionary=self.dictionary,
-                                   coherence='c_v', topn=topk)
-            return cv.get_coherence()
-
-
 class CoherenceWordEmbeddings(Measure):
     def __init__(self, topics, word2vec_path=None, binary=False):
-        """
+        '''
         :param topics: a list of lists of the top-n most likely words
         :param word2vec_path: if word2vec_file is specified, it retrieves the word embeddings file (in word2vec format) to
          compute similarities between words, otherwise 'word2vec-google-news-300' is downloaded
         :param binary: if the word2vec file is binary
-        """
+        '''
         super().__init__()
         self.topics = topics
         self.binary = binary
@@ -158,18 +98,16 @@ class CoherenceWordEmbeddings(Measure):
 
 class InvertedRBO(Measure):
     def __init__(self, topics):
-        """
-        :param topics: a list of lists of words
-        """
         super().__init__()
         self.topics = topics
 
     def score(self, topk = 10, weight=0.9):
-        """
+        '''
         :param weight: p (float), default 1.0: Weight of each agreement at depth d:
         p**(d-1). When set to 1.0, there is no weight, the rbo returns to average overlap.
+        :param topic_list: a list of lists of words
         :return: rank_biased_overlap over the topics
-        """
+        '''
         if topk > len(self.topics[0]):
             raise Exception('Words in topics are less than topk')
         else:
@@ -178,7 +116,6 @@ class InvertedRBO(Measure):
                 rbo_val = rbo.rbo(list1[:topk], list2[:topk], p=weight)[2]
                 collect.append(rbo_val)
             return 1 - np.mean(collect)
-
 
 class Matches(Measure):
     def __init__(self, doc_distribution_original_language, doc_distribution_unseen_language):
@@ -283,4 +220,3 @@ class CentroidDistance(Measure):
                 vector_list.append(self.wv.get_vector(word))
         vec = sum(vector_list)
         return vec / np.linalg.norm(vec)
-

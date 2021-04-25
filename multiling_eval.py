@@ -29,19 +29,19 @@ ctm.load(sys.argv[1], sys.argv[2])
 
 num_topics = 100
 thetas_en = ctm.get_thetas(testing_dataset_en, n_samples=100)
-with open("temp/topics_en.txt", 'w') as test_out:
+with open("temp/topics_en_simple.txt", 'w') as test_out:
     topics = np.squeeze(np.argmax(thetas_en, axis=1).T)
     for topic in topics:
-        test_out.write('\n' + str(topic))
+        test_out.write(str(topic)+'\n')
 
 # randomly shuffled en baseline
 # np.random.seed(3)
 # np.random.shuffle(thetas_en)
 
 # plot topic histogram
-labels, values = zip(*Counter(np.squeeze(np.argmax(thetas_en, axis=1).T)).items())
-indexes = np.arange(len(labels))
-width = 1
+# labels, values = zip(*Counter(np.squeeze(np.argmax(thetas_en, axis=1).T)).items())
+# indexes = np.arange(len(labels))
+# width = 1
 # plt.bar(indexes, values, width)
 # plt.xticks(indexes + width * 0.5, labels)
 # plt.savefig('figures/hist_en.png') 
@@ -62,14 +62,14 @@ for lang in ('fr', 'de', 'nl', 'pt'):
     # randomly shuffled fr baseline
     #np.random.seed(3)
     #np.random.shuffle(thetas_fr)
-    with open(f"temp/topics_{lang}.txt", 'w') as test_out:
+    with open(f"temp/topics_{lang}_simple.txt", 'w') as test_out:
         topics = np.squeeze(np.argmax(thetas_fr, axis=1).T)
         for topic in topics:
-            test_out.write('\n' + str(topic))
+            test_out.write(str(topic)+'\n')
     # plot topic histogram
     # plt.cla(); plt.clf()
-    labels, values = zip(*Counter(np.squeeze(np.argmax(thetas_fr, axis=1).T)).items())
-    indexes = np.arange(len(labels))
+    # labels, values = zip(*Counter(np.squeeze(np.argmax(thetas_fr, axis=1).T)).items())
+    # indexes = np.arange(len(labels))
     # plt.bar(indexes, values, width)
     # plt.xticks(indexes + width * 0.5, labels)
     # plt.savefig(f'figures/hist_{lang}.png') 
