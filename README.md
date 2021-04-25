@@ -1,6 +1,4 @@
-===========================
-Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling
-===========================
+# Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling
 
 This respository contains code for replicating the experiments of our NAACL 2021 paper, [Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling](https://arxiv.org/abs/2104.05064). Specifically, this repository contains code for preprocessing input data, the article IDs for the Wikipedia dataset we use in the paper, and the code for TCCTM modeling. This repository is very similar to the original contextualized topic modeling repository, but with the addition of our specific TCCTM model and evaluation code.
 
@@ -15,27 +13,7 @@ support topic modeling. See the original papers for details:
 * `Pre-training is a Hot Topic: Contextualized Document Embeddings Improve Topic Coherence` https://arxiv.org/pdf/2004.03974.pdf
 
 
-Jump start Tutorial
--------------------
-
-.. |colab1| image:: https://colab.research.google.com/assets/colab-badge.svg
-    :target: https://colab.research.google.com/drive/1V0tkpJL1yhiHZUJ_vwQRu6I7_svjw1wb?usp=sharing
-    :alt: Open In Colab
-
-.. |colab2| image:: https://colab.research.google.com/assets/colab-badge.svg
-    :target: https://colab.research.google.com/drive/1quD11TMy-1D-GxPUj_Dea4iRYmOO8C2C?usp=sharing
-    :alt: Open In Colab
-
-+----------------------------------------------------------------+--------------------+
-| Name                                                           | Link               |
-+================================================================+====================+
-| Combined Topic Modeling for Wikipedia Documents                | |colab1|           |
-+----------------------------------------------------------------+--------------------+
-| Combined Topic Modeling with Preprocessing                     | |colab2|           |
-+----------------------------------------------------------------+--------------------+
-
-TL;DR
------
+## TL;DR
 
 + In CTMs we have two models. "combined" and "contextual", they have different use cases.
 + CTMs work better when the size of the bag of words has been restricted to a number of terms that do not go over 2000 elements (this is because we have a neural model that reconstructs the input bag of word). We have a preprocessing_ pipeline that can help you in dealing with this.
