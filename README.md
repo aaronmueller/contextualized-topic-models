@@ -21,13 +21,17 @@ For training, we use 100,000 aligned articles per-language; for testing, we hold
 
 We create aligned testing sets for cross-lingual evaluation. But if we only train on English, why create an aligned training set? This is to generate language-specific vocabularies that have (ideally 100%, but realistically a bit less) overlap in lexical-semantic content cross-linguistically.
 
+## Preprocessing
+
+We include our preprocessing notebook in `examples/preprocessing_wiki.ipynb`. Note that to use this, you will first need to generate vocabularies for each language. The vocabularies should be text files where each line contains one token.  We simply took the 5000 most frequent tokens per-language, though the original CTM paper used 2000 tokens per-language. There is also a built-in preprocessing script in the [original CTM repository](https://github.com/MilaNLProc/contextualized-topic-models).
+
 ## Training
 
 To train a regular CTM, use the `model_wiki.py` script. This script is currently instantiated with the best hyperparameters we found on the dataset used in our paper. Note that you will need to modify the paths
 
 To train a TCCTM, use the `model_wiki_topicreg.py` script. The primary difference between this and `model_wiki.py` is that this script uses a new `CTMDatasetTopReg` data processor, rather than the default `CTMDataset`; this data processor loads the input data as well as topic labels for each article. The document labels are generated from an LDA topic model. When the `CTMDatasetTopReg` processor is used, the TCCTM model is automatically used without any further changes needed in the main code. This behavior is defined in the `CTM` class of the [CTM model definition script](contextualized_topic_models/models/ctm.py).
 
-![TCCTM architecture](img/tcctm_architecture.pdf)
+![TCCTM architecture](img/tcctm_architecture.png)
 
 The difference between a CTM model and TCCTM model is that the TCCTM contains a topic classifier. The model maps from the hidden representation of the input sentences produced by the VAE to a topic label, using a negative log-likelihood loss. This loss is added to the loss of the topic model. If you do not wish to fine-tune your contextualized sentence embeddings before applying them to monolingual topic modeling, TCCTM achieves similar performance to a CTM with well-tuned sentence embeddings for this task. However, note that if you want good zero-shot cross-lingual topic transfer, you will want to fine-tune your embeddings.
 
@@ -45,13 +49,6 @@ python multiling_eval.py <model_file.pth> <epoch> <sbert_model>
 ```
 where `<sbert_model>` is the output directory of a trained `sentence-transformers` model. This script will output Match and KL scores for the aligned English-{French, German, Dutch, Portuguese} test sets.
 
-Combined Topic Model
---------------------
-
-.. image:: https://raw.githubusercontent.com/MilaNLProc/contextualized-topic-models/master/img/lm_topic_model.png
-   :target: https://raw.githubusercontent.com/MilaNLProc/contextualized-topic-models/master/img/lm_topic_model.png
-   :align: center
-   :width: 400px
 
 ## License & Documentation
 
@@ -60,36 +57,18 @@ As this repository is forked from a repository which uses the MIT License, we al
 * Free software: MIT license
 * Further CTM Documentation: https://contextualized-topic-models.readthedocs.io.
 
-Preprocessing
--------------
-
-Do you need a quick script to run the preprocessing pipeline? we got you covered! Load your documents
-and then use our SimplePreprocessing class. It will automatically filter infrequent words and remove documents
-that are empty after training. The preprocess method will return the preprocessed and the unpreprocessed documents.
-We generally use the unpreprocessed for BERT and the preprocessed for the Bag Of Word.
-
-.. code-block:: python
-
-    from contextualized_topic_models.utils.preprocessing import SimplePreprocessing
-
-    documents = [line.strip() for line in open("documents.txt").readlines()]
-    sp = SimplePreprocessing(documents)
-    preprocessed_documents, unpreprocessed_corpus, vocab = sp.preprocess()
-
-
-References
-----------
+## References
 
 If you use the materials in this repository in a research work, please cite this paper:
 
 ```
-	@inproceedings{mueller2021finetuning,
-		title={Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Topic Modeling},
-		author={Aaron Mueller and Mark Dredze},
-		year={2021},
-		booktitle="Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics, Volume 1 (Long and Short Papers)",
-		publisher="Association for Computational Linguistics"
-	}
+    @inproceedings{mueller2021finetuning,
+        title={Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Topic Modeling},
+        author={Aaron Mueller and Mark Dredze},
+        year={2021},
+        booktitle="Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics, Volume 1 (Long and Short Papers)",
+        publisher="Association for Computational Linguistics"
+    }
 ```
 
 In addition, please cite the following papers on contextualized topic modeling:
