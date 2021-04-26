@@ -1,24 +1,49 @@
 # Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling
 
-This respository contains code for replicating the experiments of our NAACL 2021 paper, [Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling](https://arxiv.org/abs/2104.05064). Specifically, this repository contains code for preprocessing input data, the article IDs for the Wikipedia dataset we use in the paper, and the code for TCCTM modeling. This repository is very similar to the original contextualized topic modeling repository, but with the addition of our specific TCCTM model and evaluation code.
+This respository contains code for replicating the experiments of our NAACL 2021 paper, [Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling](https://arxiv.org/abs/2104.05064). Specifically, this repository contains code for preprocessing input data, the article IDs for the Wikipedia dataset we use in the paper, and the code for TCCTM modeling. This repository is very similar to the original [contextualized topic modeling repository](https://github.com/MilaNLProc/contextualized-topic-models), but with the addition of our specific TCCTM model and evaluation code.
 
 For continued pre-training, use the [huggingface transformers](https://github.com/huggingface/transformers) repository. We have included our continued pre-training script in the `cpt` folder.
 
 For fine-tuning sentence embeddings, use the [sentence-transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
-Contextualized Topic Models (CTM) are a family of topic models that use pre-trained representations of language (e.g., BERT) to
-support topic modeling. See the original papers for details:
+Contextualized Topic Models (CTMs) are a family of topic models that use pre-trained representations of language (e.g., BERT) to
+support topic modeling. See the original CTM papers for details:
 
-* `Cross-lingual Contextualized Topic Models with Zero-shot Learning` https://arxiv.org/pdf/2004.07737v1.pdf
-* `Pre-training is a Hot Topic: Contextualized Document Embeddings Improve Topic Coherence` https://arxiv.org/pdf/2004.03974.pdf
+* Cross-lingual Contextualized Topic Models with Zero-shot Learning: https://arxiv.org/pdf/2004.07737v1.pdf
+* Pre-training is a Hot Topic: Contextualized Document Embeddings Improve Topic Coherence: https://arxiv.org/pdf/2004.03974.pdf
 
 
-## TL;DR
+## Data
 
-+ In CTMs we have two models. "combined" and "contextual", they have different use cases.
-+ CTMs work better when the size of the bag of words has been restricted to a number of terms that do not go over 2000 elements (this is because we have a neural model that reconstructs the input bag of word). We have a preprocessing_ pipeline that can help you in dealing with this.
-+ Check the BERT model you are using, the multilingual BERT model one used on English data might not give results that are as good as the pure English trained one.
-+ Preprocessing is **key**. If you give BERT preprocessed text, it might be difficult to get out a good representation. What we usually do is use the preprocessed text for the bag of word creating and use the NOT preprocessed text for BERT embeddings. Our preprocessing_ class can take care of this for you.
+We use a subset of the aligned multilingual Wikipedia Comparable Corpora dataset, which may be found here: https://linguatools.org/tools/corpora/wikipedia-comparable-corpora/
+
+For training, we use 100,000 aligned articles per-language; for testing, we hold out 10,000 aligned articles per-language. Because aligned articles are presented in the same XML object and use the same English title across language pairs, we use English article names as identifiers. You can find a (non-comprehensive) list of article titles for articles shared by all languages used in this study in `contextualized_topic_models/data/wiki/common_articles.txt`. In this study, we (arbitrarily) sampled the first 10,000 article titles from that list and obtained their associated article texts from the Comparable Corpora dataset to create our aligned test set. Similarly, we sampled the last 100,000 article titles and obtained those article texts to create our aligned training set.
+
+We create aligned testing sets for cross-lingual evaluation. But if we only train on English, why create an aligned training set? This is to generate language-specific vocabularies that have (ideally 100%, but realistically a bit less) overlap in lexical-semantic content cross-linguistically.
+
+## Training
+
+To train a regular CTM, use the `model_wiki.py` script. This script is currently instantiated with the best hyperparameters we found on the dataset used in our paper. Note that you will need to modify the paths
+
+To train a TCCTM, use the `model_wiki_topicreg.py` script. The primary difference between this and `model_wiki.py` is that this script uses a new `CTMDatasetTopReg` data processor, rather than the default `CTMDataset`; this data processor loads the input data as well as topic labels for each article. The document labels are generated from an LDA topic model. When the `CTMDatasetTopReg` processor is used, the TCCTM model is automatically used without any further changes needed in the main code. This behavior is defined in the `CTM` class of the [CTM model definition script](contextualized_topic_models/models/ctm.py).
+
+![TCCTM architecture](img/tcctm_architecture.pdf)
+
+The difference between a CTM model and TCCTM model is that the TCCTM contains a topic classifier. The model maps from the hidden representation of the input sentences produced by the VAE to a topic label, using a negative log-likelihood loss. This loss is added to the loss of the topic model. If you do not wish to fine-tune your contextualized sentence embeddings before applying them to monolingual topic modeling, TCCTM achieves similar performance to a CTM with well-tuned sentence embeddings for this task. However, note that if you want good zero-shot cross-lingual topic transfer, you will want to fine-tune your embeddings.
+
+## Evaluation
+
+To obtain NPMI coherence scores for a trained (TC)CTM, use the `topic_inference.py` script. The usage is as follows:
+```
+python topic_inference.py <model_file.pth> <epoch> 
+```
+By default, training happens for 60 epochs, and only the last epoch is saved. If you use this code as-is, use `59` (epochs are 0-indexed here) for the `<epoch>` argument.
+
+To perform cross-lingual evaluations, use the `multiling_eval.py` script. The usage is as follows:
+```
+python multiling_eval.py <model_file.pth> <epoch> <sbert_model>
+```
+where `<sbert_model>` is the output directory of a trained `sentence-transformers` model. This script will output Match and KL scores for the aligned English-{French, German, Dutch, Portuguese} test sets.
 
 Combined Topic Model
 --------------------
@@ -28,160 +53,12 @@ Combined Topic Model
    :align: center
    :width: 400px
 
-Fully Contextual Topic Model
-----------------------------
+## License & Documentation
 
-.. image:: https://raw.githubusercontent.com/MilaNLProc/contextualized-topic-models/master/img/lm_topic_model_multilingual.png
-   :target: https://raw.githubusercontent.com/MilaNLProc/contextualized-topic-models/master/img/lm_topic_model_multilingual.png
-   :align: center
-   :width: 400px
-
-Software details:
+As this repository is forked from a repository which uses the MIT License, we also use the MIT License. You may freely reuse code found here in proprietary software, provided you include the MIT License terms and copyright notice.
 
 * Free software: MIT license
-* Documentation: https://contextualized-topic-models.readthedocs.io.
-* Super big shout-out to `Stephen Carrow`_ for creating the awesome https://github.com/estebandito22/PyTorchAVITM package from which we constructed the foundations of this package. We are happy to redistribute again this software under the MIT License.
-
-
-
-Features
---------
-
-* Combines BERT and Neural Variational Topic Models
-* Two different methodologies: combined, where we combine BoW and BERT embeddings and contextual, that uses only BERT embeddings
-* Includes methods to create embedded representations and BoW
-* Includes evaluation metrics
-
-
-Overview
---------
-
-**Important**: If you want to use CUDA you need to install the correct version of
-the CUDA systems that matches your distribution, see pytorch_.
-
-Install the package using pip
-
-.. code-block:: bash
-
-    pip install -U contextualized_topic_models
-
-The contextual neural topic model can be easily instantiated using few parameters (although there is a wide range of
-parameters you can use to change the behaviour of the neural topic model). When you generate
-embeddings with BERT remember that there is a maximum length and for documents that are too long some words will be ignored.
-
-An important aspect to take into account is which network you want to use: the one that combines BERT and the BoW or the one that just uses BERT.
-It's easy to swap from one to the other:
-
-Combined Topic Model:
-
-.. code-block:: python
-
-    CTM(input_size=len(handler.vocab), bert_input_size=512, inference_type="combined", n_components=50)
-
-Fully Contextual Topic Model:
-
-.. code-block:: python
-
-    CTM(input_size=len(handler.vocab), bert_input_size=512, inference_type="contextual", n_components=50)
-
-
-
-
-Contextual Topic Modeling
--------------------------
-
-Here is how you can use the combined topic model. The high level API is pretty easy to use:
-
-.. code-block:: python
-
-    from contextualized_topic_models.models.ctm import CTM
-    from contextualized_topic_models.utils.data_preparation import TextHandler
-    from contextualized_topic_models.utils.data_preparation import bert_embeddings_from_file
-    from contextualized_topic_models.datasets.dataset import CTMDataset
-
-    handler = TextHandler("documents.txt")
-    handler.prepare() # create vocabulary and training data
-
-    # generate BERT data
-    training_bert = bert_embeddings_from_file("documents.txt", "distiluse-base-multilingual-cased")
-
-    training_dataset = CTMDataset(handler.bow, training_bert, handler.idx2token)
-
-    ctm = CTM(input_size=len(handler.vocab), bert_input_size=512, inference_type="combined", n_components=50)
-
-    ctm.fit(training_dataset) # run the model
-
-See the example notebook in the `contextualized_topic_models/examples` folder.
-We have also included some of the metrics normally used in the evaluation of topic models, for example you can compute the coherence of your
-topics using NPMI using our simple and high-level API.
-
-.. code-block:: python
-
-    from contextualized_topic_models.evaluation.measures import CoherenceNPMI
-
-    with open('documents.txt',"r") as fr:
-        texts = [doc.split() for doc in fr.read().splitlines()] # load text for NPMI
-
-    npmi = CoherenceNPMI(texts=texts, topics=ctm.get_topic_lists(10))
-    npmi.score()
-
-
-Cross-lingual Topic Modeling
-----------------------------
-
-The fully contextual topic model can be used for cross-lingual topic modeling! See the paper (https://arxiv.org/pdf/2004.07737v1.pdf)
-
-
-.. code-block:: python
-
-    from contextualized_topic_models.models.ctm import CTM
-    from contextualized_topic_models.utils.data_preparation import TextHandler
-    from contextualized_topic_models.utils.data_preparation import bert_embeddings_from_file
-    from contextualized_topic_models.datasets.dataset import CTMDataset
-
-    handler = TextHandler("english_documents.txt")
-    handler.prepare() # create vocabulary and training data
-
-    training_bert = bert_embeddings_from_file("documents.txt", "distiluse-base-multilingual-cased")
-
-    training_dataset = CTMDataset(handler.bow, training_bert, handler.idx2token)
-
-    ctm = CTM(input_size=len(handler.vocab), bert_input_size=512, inference_type="contextual", n_components=50)
-
-    ctm.fit(training_dataset) # run the model
-
-
-Predict Topics for Unseen Documents
------------------------------------
-Once you have trained the cross-lingual topic model, you can use this simple pipeline to predict the topics for documents in a different language.
-
-.. code-block:: python
-
-
-    test_handler = TextHandler("spanish_documents.txt")
-    test_handler.prepare() # create vocabulary and training data
-
-    # generate BERT data
-    testing_bert = bert_embeddings_from_file("spanish_documents.txt", "distiluse-base-multilingual-cased")
-
-    testing_dataset = CTMDataset(test_handler.bow, testing_bert, test_handler.idx2token)
-    # n_sample how many times to sample the distribution (see the doc)
-    ctm.get_thetas(testing_dataset, n_samples=20)
-
-
-
-Mono vs Cross-lingual
----------------------
-All the examples we saw used a multilingual embedding model :code:`distiluse-base-multilingual-cased`.
-However, if you are doing topic modeling in English, you can use the English sentence-bert model. In that case,
-it's really easy to update the code to support mono-lingual english topic modeling.
-
-.. code-block:: python
-
-    training_bert = bert_embeddings_from_file("documents.txt", "bert-base-nli-mean-tokens")
-    ctm = CTM(input_size=len(handler.vocab), bert_input_size=768, inference_type="combined", n_components=50)
-
-In general, our package should be able to support all the models described in the `sentence transformer package <https://github.com/UKPLab/sentence-transformers>`_.
+* Further CTM Documentation: https://contextualized-topic-models.readthedocs.io.
 
 Preprocessing
 -------------
@@ -200,22 +77,24 @@ We generally use the unpreprocessed for BERT and the preprocessed for the Bag Of
     preprocessed_documents, unpreprocessed_corpus, vocab = sp.preprocess()
 
 
-Development Team
-----------------
-
-* `Federico Bianchi`_ <f.bianchi@unibocconi.it> Bocconi University
-* `Silvia Terragni`_ <s.terragni4@campus.unimib.it> University of Milan-Bicocca
-* `Dirk Hovy`_ <dirk.hovy@unibocconi.it> Bocconi University
-
 References
 ----------
 
-If you use this in a research work please cite these papers:
+If you use the materials in this repository in a research work, please cite this paper:
 
-Combined Topic Model
+```
+	@inproceedings{mueller2021finetuning,
+		title={Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Topic Modeling},
+		author={Aaron Mueller and Mark Dredze},
+		year={2021},
+		booktitle="Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics, Volume 1 (Long and Short Papers)",
+		publisher="Association for Computational Linguistics"
+	}
+```
 
-::
+In addition, please cite the following papers on contextualized topic modeling:
 
+```
     @article{bianchi2020pretraining,
         title={Pre-training is a Hot Topic: Contextualized Document Embeddings Improve Topic Coherence},
         author={Federico Bianchi and Silvia Terragni and Dirk Hovy},
@@ -224,37 +103,10 @@ Combined Topic Model
     }
 
 
-Fully Contextual Topic Model
-
-::
-
     @article{bianchi2020crosslingual,
         title={Cross-lingual Contextualized Topic Models with Zero-shot Learning},
         author={Federico Bianchi and Silvia Terragni and Dirk Hovy and Debora Nozza and Elisabetta Fersini},
         year={2020},
        journal={arXiv preprint arXiv:2004.07737},
     }
-
-
-
-Credits
--------
-
-
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
-To ease the use of the library we have also included the `rbo`_ package, all the rights reserved to the author of that package.
-
-Note
-----
-
-Remember that this is a research tool :)
-
-.. _pytorch: https://pytorch.org/get-started/locally/
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. preprocessing: https://github.com/MilaNLProc/contextualized-topic-models#preprocessing
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
-.. _`Stephen Carrow` : https://github.com/estebandito22
-.. _`rbo` : https://github.com/dlukes/rbo
-.. _Federico Bianchi: http://vinid.io
-.. _Silvia Terragni: https://silviatti.github.io/
-.. _Dirk Hovy: https://dirkhovy.com/
+```

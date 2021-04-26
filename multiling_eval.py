@@ -47,10 +47,6 @@ with open("temp/topics_en_simple.txt", 'w') as test_out:
 # plt.savefig('figures/hist_en.png') 
 # print(thetas_en)
 
-# uniform baseline
-# thetas_en = np.random.uniform(size=(len(testing_dataset_en), num_topics))
-# thetas_en = thetas_en / np.sum(thetas_en, axis=1)[:, np.newaxis]
-
 scores = {'match': [], 'kl': []}
 
 for lang in ('fr', 'de', 'nl', 'pt'):
@@ -59,30 +55,22 @@ for lang in ('fr', 'de', 'nl', 'pt'):
     testing_bert_fr = bert_embeddings_from_file(f'contextualized_topic_models/data/wiki/wiki_test_{lang}_unprep_sub.txt', sys.argv[3])
     testing_dataset_fr = CTMDataset(handler_fr.bow, testing_bert_fr, handler_fr.idx2token)
     thetas_fr = ctm.get_thetas(testing_dataset_fr, n_samples=100)
-    # randomly shuffled fr baseline
+    # randomly shuffled target-lang baseline
     #np.random.seed(3)
     #np.random.shuffle(thetas_fr)
+
     with open(f"temp/topics_{lang}_simple.txt", 'w') as test_out:
         topics = np.squeeze(np.argmax(thetas_fr, axis=1).T)
         for topic in topics:
             test_out.write(str(topic)+'\n')
-    # plot topic histogram
-    # plt.cla(); plt.clf()
-    # labels, values = zip(*Counter(np.squeeze(np.argmax(thetas_fr, axis=1).T)).items())
-    # indexes = np.arange(len(labels))
-    # plt.bar(indexes, values, width)
-    # plt.xticks(indexes + width * 0.5, labels)
-    # plt.savefig(f'figures/hist_{lang}.png') 
+
     # calculate multilingual metrics
     match = Matches(thetas_en, thetas_fr)
     kl = KLDivergence(thetas_en, thetas_fr)
-    # centroid = CentroidDistance(thetas_en, thetas_fr, num_topics)
     print('{} results:'.format(lang))
     print('\tmatch: {}\tkl: {}'.format(match.score(), kl.score()))
     scores['match'].append(match.score())
     scores['kl'].append(kl.score())
-    # scores['centroid'].append(centroid)
 
 print("Matches:", np.mean(scores['match']))
 print("KL Divergence:", np.mean(scores['kl']))
-# print("Centroid Distance:", np.mean(scores['centroid']))
