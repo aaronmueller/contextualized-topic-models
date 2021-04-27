@@ -4,7 +4,7 @@ This respository contains code for replicating the experiments of our NAACL 2021
 
 For continued pre-training, use the [huggingface transformers](https://github.com/huggingface/transformers) repository. We have included our continued pre-training script in the `cpt` folder.
 
-For fine-tuning sentence embeddings, use the [sentence-transformers](https://github.com/UKPLab/sentence-transformers) repository.
+For fine-tuning sentence embeddings, use the [sentence-transformers](https://github.com/UKPLab/sentence-transformers) repository. We have included our SBERT training scripts in the `sentence-transformers` folder, which is structured such that you should be able to copy its contents over the contents of the original `sentence-transformers` repository. You will need to create topic classification datasets (instructions below) to run `training_topics.py`.
 
 Contextualized Topic Models (CTMs) are a family of topic models that use pre-trained representations of language (e.g., BERT) to
 support topic modeling. See the original CTM papers for details:
