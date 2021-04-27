@@ -17,13 +17,34 @@ support topic modeling. See the original CTM papers for details:
 
 We use a subset of the aligned multilingual Wikipedia Comparable Corpora dataset, which may be found here: https://linguatools.org/tools/corpora/wikipedia-comparable-corpora/
 
-For training, we use 100,000 aligned articles per-language; for testing, we hold out 10,000 aligned articles per-language. Because aligned articles are presented in the same XML object and use the same English title across language pairs, we use English article names as identifiers. You can find a (non-comprehensive) list of article titles for articles shared by all languages used in this study in `contextualized_topic_models/data/wiki/common_articles.txt`. In this study, we (arbitrarily) sampled the first 10,000 article titles from that list and obtained their associated article texts from the Comparable Corpora dataset to create our aligned test set. Similarly, we sampled the last 100,000 article titles and obtained those article texts to create our aligned training set.
+For training, we use 100,000 aligned articles per-language; for testing, we hold out 10,000 aligned articles per-language. Because aligned articles are presented in the same XML object and use the same English title across language pairs, we use English article names as identifiers. You can find a (non-comprehensive) list of article titles for articles shared by all languages used in this study in `contextualized_topic_models/data/wiki/common_articles.txt`. In this study, we sample the first 10,000 article titles from that list and obtained their associated article texts from the Comparable Corpora dataset to create our aligned test set. Similarly, we sample the last 100,000 article titles and obtained those article texts to create our aligned training set.
 
 We create aligned testing sets for cross-lingual evaluation. But if we only train on English, why create an aligned training set? This is to generate language-specific vocabularies that have (ideally 100%, but realistically a bit less) overlap in lexical-semantic content cross-linguistically.
+
 
 ## Preprocessing
 
 We include our preprocessing notebook in `examples/preprocessing_wiki.ipynb`. Note that to use this, you will first need to generate vocabularies for each language. The vocabularies should be text files where each line contains one token.  We simply took the 5000 most frequent tokens per-language, though the original CTM paper used 2000 tokens per-language. There is also a built-in preprocessing script in the [original CTM repository](https://github.com/MilaNLProc/contextualized-topic-models).
+
+
+## Topic Classification
+
+Topic classification is a supervised task proposed in this paper. It is functionally equivalent to document classification, except that the document labels are from a topic model rather than human annotators. We use MalletLDA (as implemented in the [gensim wrapper](https://radimrehurek.com/gensim_3.8.3/models/wrappers/ldamallet.html)) to topic model our training data, searching over the number of topics by NPMI coherence. Then, we use the topic model with the highest coherence to assign each article a topic.
+
+The scripts we use to create the `sentence-transformers` training data for this task may be found in `contextualized_topic_models/data/wiki`. Specifically, use the following to topic model the training data:
+
+```
+python model_mallet_wiki.py <num_topics>
+```
+
+This will save a topic model using the specified number of topics to a .pkl file in the directory in which the script is run. Then, run the following (in the same directory) to obtain a .json file with documents classified by topic:
+
+```
+python assign_topics.py <num_topics>
+```
+
+This will output a file called `topic_full.json`. We use the first 80,000 lines of this file to create a training .json, the next 10,000 lines to generate a dev .json, and the final 10,000 lines to generate a test .json. You may then use this dataset to train a `sentence-transformers` model.
+
 
 ## Training
 
@@ -34,6 +55,7 @@ To train a TCCTM, use the `model_wiki_topicreg.py` script. The primary differenc
 ![TCCTM architecture](img/tcctm_architecture.png)
 
 The difference between a CTM model and TCCTM model is that the TCCTM contains a topic classifier. The model maps from the hidden representation of the input sentences produced by the VAE to a topic label, using a negative log-likelihood loss. This loss is added to the loss of the topic model. If you do not wish to fine-tune your contextualized sentence embeddings before applying them to monolingual topic modeling, TCCTM achieves similar performance to a CTM with well-tuned sentence embeddings for this task. However, note that if you want good zero-shot cross-lingual topic transfer, you will want to fine-tune your embeddings.
+
 
 ## Evaluation
 
@@ -50,20 +72,13 @@ python multiling_eval.py <model_file.pth> <epoch> <sbert_model>
 where `<sbert_model>` is the output directory of a trained `sentence-transformers` model. This script will output Match and KL scores for the aligned English-{French, German, Dutch, Portuguese} test sets.
 
 
-## License & Documentation
-
-As this repository is forked from a repository which uses the MIT License, we also use the MIT License. You may freely reuse code found here in proprietary software, provided you include the MIT License terms and copyright notice.
-
-* Free software: MIT license
-* Further CTM Documentation: https://contextualized-topic-models.readthedocs.io.
-
 ## References
 
 If you use the materials in this repository in a research work, please cite this paper:
 
 ```
     @inproceedings{mueller2021finetuning,
-        title={Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Topic Modeling},
+        title={Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling},
         author={Aaron Mueller and Mark Dredze},
         year={2021},
         booktitle="Proceedings of the 2021 Conference of the North {A}merican Chapter of the Association for Computational Linguistics, Volume 1 (Long and Short Papers)",
@@ -89,3 +104,11 @@ In addition, please cite the following papers on contextualized topic modeling:
        journal={arXiv preprint arXiv:2004.07737},
     }
 ```
+
+
+## License & Documentation
+
+As this repository is forked from a repository which uses the MIT License, we also use the MIT License. You may freely reuse code found here in proprietary software, provided you include the MIT License terms and copyright notice.
+
+* Free software: MIT license
+* Further CTM Documentation: https://contextualized-topic-models.readthedocs.io.
