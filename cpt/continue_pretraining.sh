@@ -19,8 +19,8 @@ python examples/language-modeling/run_language_modeling.py \
 	--eval_data_file $CTM_DIR/data/wiki/topic_dev.txt \
 	--learning_rate 1e-4 \
 	--num_train_epochs 1 \
-	--save_total_limit 3 \
+	--save_total_limit 5 \
 	--save_steps 512 \
 	--output_dir models/wiki-mbert \
-	--per_gpu_train_batch_size 1 \
-	--gradient_accumulation_steps 256
+	--per_gpu_train_batch_size 4 \
+	--gradient_accumulation_steps 64
