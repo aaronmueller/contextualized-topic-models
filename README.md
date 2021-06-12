@@ -77,18 +77,18 @@ where `<sbert_model>` is the output directory of a trained `sentence-transformer
 If you use the materials in this repository in a research work, please cite this paper:
 
 ```
-	@inproceedings{mueller-dredze-2021-encoders,
-		title = "Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling",
-		author = "Mueller, Aaron  and
-		  Dredze, Mark",
-		booktitle = "Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
-		month = jun,
-		year = "2021",
-		address = "Online",
-		publisher = "Association for Computational Linguistics",
-		url = "https://www.aclweb.org/anthology/2021.naacl-main.243",
-		pages = "3054--3068"
-	}
+    @inproceedings{mueller-dredze-2021-encoders,
+        title = "Fine-tuning Encoders for Improved Monolingual and Zero-shot Polylingual Neural Topic Modeling",
+        author = "Mueller, Aaron  and
+          Dredze, Mark",
+        booktitle = "Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
+        month = jun,
+        year = "2021",
+        address = "Online",
+        publisher = "Association for Computational Linguistics",
+        url = "https://www.aclweb.org/anthology/2021.naacl-main.243",
+        pages = "3054--3068"
+    }
 ```
 
 In addition, please cite the following papers on contextualized topic modeling:
